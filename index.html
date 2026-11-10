@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>書類送信</title>
+<!-- ホーム画面に追加したときのアイコン・名前・全画面表示の設定 -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="書類送信">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1769e0">
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --text: #1d2733; --sub: #5b6875;
+    --main: #1769e0; --main-dark: #0f4fae; --ok: #16a34a; --ok-dark: #11803a;
+    --ng: #d92d20; --line: #d8dee5; --accent: #f97316;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif; }
+  .wrap { max-width: 520px; margin: 0 auto;
+    padding: calc(12px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; gap: 10px; padding: 4px 0 12px; }
+  header img { width: 40px; height: 40px; border-radius: 10px; }
+  header h1 { font-size: 22px; margin: 0; }
+
+  .label { font-size: 16px; font-weight: 700; margin: 6px 0 8px; color: var(--sub); }
+  .label .num { display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center;
+    border-radius: 50%; background: var(--main); color: #fff; font-size: 14px; margin-right: 6px; }
+  .stores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .store-btn { min-height: 60px; border-radius: 14px; border: 3px solid var(--line); background: #fff;
+    font-size: 20px; font-weight: 700; color: var(--text); cursor: pointer; padding: 6px; }
+  .store-btn.unknown { grid-column: 1 / -1; min-height: 48px; font-size: 16px; color: var(--sub); }
+  .store-btn.on { border-color: var(--main); background: #e8f0fd; color: var(--main-dark); }
+  .store-btn.on::before { content: "✓ "; }
+  .store-btn.unknown.on { border-color: var(--sub); background: #eef1f4; color: var(--text); }
+  .store-box { background: var(--card); border-radius: 16px; padding: 12px; }
+
+  .big { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;
+    min-height: 84px; border: none; border-radius: 18px; font-size: 24px; font-weight: 700;
+    color: #fff; cursor: pointer; margin-top: 12px; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+  .big:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.15); }
+  .big .ico { font-size: 32px; }
+  .camera { background: var(--main); }
+  .camera:active { background: var(--main-dark); }
+  .pick { background: #fff; color: var(--main); border: 3px solid var(--main); box-shadow: none; }
+  .send { background: var(--ok); }
+  .send:active { background: var(--ok-dark); }
+  .big[disabled] { background: #9aa5b1; border-color: #9aa5b1; color: #fff; box-shadow: none; }
+  .sub-btn { display: block; width: 100%; margin-top: 12px; padding: 14px; font-size: 17px;
+    background: none; border: 2px dashed #b8c2cc; border-radius: 14px; color: var(--sub); cursor: pointer; }
+
+  .tips { background: var(--card); border-radius: 14px; padding: 12px 16px; margin-top: 18px;
+    font-size: 15px; color: var(--sub); line-height: 1.7; }
+  .tips b { color: var(--text); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .thumb { position: relative; aspect-ratio: 3/4; background: #fff; border-radius: 10px;
+    overflow: hidden; border: 1px solid var(--line); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .pdf { display: flex; align-items: center; justify-content: center; height: 100%;
+    font-size: 18px; font-weight: 700; color: var(--ng); }
+  .thumb .del { position: absolute; top: 4px; right: 4px; width: 34px; height: 34px; border-radius: 50%;
+    border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 18px; cursor: pointer; }
+  .thumb .st { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px; text-align: center;
+    font-size: 13px; font-weight: 700; color: #fff; }
+  .st.done { background: var(--ok); } .st.err { background: var(--ng); } .st.wait { background: rgba(0,0,0,.55); }
+
+  .result { text-align: center; padding: 32px 8px 8px; }
+  .result .mark { width: 120px; height: 120px; line-height: 120px; margin: 0 auto; border-radius: 50%;
+    background: var(--ok); color: #fff; font-size: 72px; }
+  .result h2 { font-size: 28px; margin: 20px 0 8px; }
+  .result p { color: var(--sub); font-size: 17px; margin: 0; line-height: 1.6; }
+  .msg-ng { background: #fdecea; color: var(--ng); border-radius: 12px; padding: 12px 14px;
+    margin-top: 14px; font-size: 16px; font-weight: 700; line-height: 1.6; }
+  .progress { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 12px; }
+  .progress div { height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+  .bad { text-align: center; padding: 60px 16px; font-size: 18px; line-height: 1.8; }
+  .hidden { display: none !important; }
+  .gap { height: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="apple-touch-icon.png" alt="">
+    <h1>書類送信</h1>
+  </header>
+
+  <!-- URLが正しくないとき -->
+  <section id="step-bad" class="hidden">
+    <div class="bad">
+      <div style="font-size:56px">⚠️</div>
+      <span id="bad-text">URLが正しくありません。<br>管理者に連絡してください。</span>
+    </div>
+  </section>
+
+  <!-- 店舗の選択(最初の画面と確認画面で共通) -->
+  <section id="store-area" class="hidden">
+    <p class="label"><span class="num">1</span>お店を選ぶ</p>
+    <div class="store-box"><div class="stores" id="stores"></div></div>
+    <div class="gap"></div>
+  </section>
+
+  <!-- ① 最初の画面 -->
+  <section id="step-start" class="hidden">
+    <p class="label"><span class="num">2</span>書類を撮る</p>
+    <button class="big camera" id="btn-camera"><span class="ico">📷</span>カメラで撮る</button>
+    <button class="big pick" id="btn-pick"><span class="ico">🖼️</span>撮った写真を選ぶ</button>
+    <div class="tips">
+      <b>うまく撮るコツ</b><br>
+      ・書類の<b>四すみ</b>が全部写るように<br>
+      ・明るい場所で、影が入らないように<br>
+      ・2枚以上ある書類は、1枚ずつ撮ってまとめて送れます
+    </div>
+  </section>
+
+  <!-- ② 確認画面 -->
+  <section id="step-check" class="hidden">
+    <p class="label"><span class="num">2</span><span id="count"></span></p>
+    <div class="grid" id="grid"></div>
+    <button class="sub-btn" id="btn-more">＋ もう1枚追加する</button>
+    <div class="progress hidden" id="progress"><div id="bar"></div></div>
+    <div class="msg-ng hidden" id="err"></div>
+    <p class="label" style="margin-top:18px"><span class="num">3</span>送る</p>
+    <button class="big send" id="btn-send" style="margin-top:0"><span class="ico">📤</span>送信する</button>
+  </section>
+
+  <!-- ③ 完了画面 -->
+  <section id="step-done" class="hidden">
+    <div class="result">
+      <div class="mark">✓</div>
+      <h2>送信しました</h2>
+      <p id="done-text"></p>
+    </div>
+    <button class="big camera" id="btn-again"><span class="ico">📷</span>続けて送る</button>
+  </section>
+
+  <input type="file" id="in-camera" accept="image/*" capture="environment" class="hidden">
+  <input type="file" id="in-pick" accept="image/*,application/pdf" multiple class="hidden">
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // ---------- 設定 ----------
+  var MAX_SIDE = 2400;          // 長い辺をこのピクセル数まで縮小(文字の読み取りには十分)
+  var JPEG_QUALITY = 0.85;
+  var MAX_BYTES = 8 * 1024 * 1024;
+  var DEFAULT_STORES = [{ id: 'seifa', name: 'せいふぁー' }, { id: 'nanjii', name: 'なんじぃJr.' }];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var store = {                  // 端末に覚えさせる値(失敗しても動くように try で包む)
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  // ---------- URLから送信先と合言葉を読む(端末にも保存しておく) ----------
+  var q = new URLSearchParams(location.search);
+  var API_ID = q.get('a') || store.get('api');
+  var TOKEN = q.get('k') || store.get('token');
+  if (q.get('a')) store.set('api', q.get('a'));
+  if (q.get('k')) store.set('token', q.get('k'));
+  var API = API_ID ? 'https://script.google.com/macros/s/' + encodeURIComponent(API_ID) + '/exec' : '';
+
+  var stores = DEFAULT_STORES;
+  var selected = store.get('lastStore') || '';   // '' = 店舗不明
+  var items = [];                                // { file, preview, status }
+  var sending = false;
+
+  function show(step) {
+    ['step-bad', 'step-start', 'step-check', 'step-done'].forEach(function (s) {
+      $(s).classList.toggle('hidden', s !== step);
+    });
+    $('store-area').classList.toggle('hidden', step === 'step-bad' || step === 'step-done');
+    window.scrollTo(0, 0);
+  }
+  function bad(msg) { $('bad-text').innerHTML = msg; show('step-bad'); }
+
+  // ---------- 店舗ボタン ----------
+  function renderStores() {
+    var box = $('stores');
+    box.innerHTML = '';
+    if (selected && !stores.some(function (s) { return s.id === selected; })) selected = '';
+    stores.concat([{ id: '', name: 'わからない（空欄で送る）' }]).forEach(function (s) {
+      var b = document.createElement('button');
+      b.className = 'store-btn' + (s.id ? '' : ' unknown') + (s.id === selected ? ' on' : '');
+      b.textContent = s.name;
+      b.disabled = sending;
+      b.onclick = function () { selected = s.id; store.set('lastStore', s.id); renderStores(); };
+      box.appendChild(b);
+    });
+  }
+  function storeName() {
+    var s = stores.filter(function (x) { return x.id === selected; })[0];
+    return s ? s.name : '';
+  }
+
+  // ---------- 起動時:URLの確認と店舗一覧の取得 ----------
+  if (!API || !TOKEN) {
+    bad('URLが正しくありません。<br>管理者から届いたURLを開き直してください。');
+  } else {
+    renderStores();
+    show('step-start');
+    fetch(API + '?k=' + encodeURIComponent(TOKEN))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { bad(res.error || 'URLが正しくありません。'); return; }
+        if (res.stores && res.stores.length) { stores = res.stores; renderStores(); }
+      })
+      .catch(function () { /* 電波が弱いときは手元の店舗一覧のまま使う */ });
+  }
+
+  // ---------- 撮影・選択 ----------
+  $('btn-camera').onclick = function () { $('in-camera').click(); };
+  $('btn-pick').onclick = function () { $('in-pick').click(); };
+  $('btn-more').onclick = function () { $('in-pick').click(); };
+  $('btn-again').onclick = function () { items = []; render(); show('step-start'); $('in-camera').click(); };
+
+  ['in-camera', 'in-pick'].forEach(function (id) {
+    $(id).onchange = function (e) {
+      Array.prototype.slice.call(e.target.files || []).forEach(function (f) {
+        items.push({ file: f, preview: f.type.indexOf('image/') === 0 ? URL.createObjectURL(f) : '', status: 'wait' });
+      });
+      e.target.value = '';
+      if (items.length) { render(); show('step-check'); }
+    };
+  });
+
+  function render() {
+    var grid = $('grid');
+    grid.innerHTML = '';
+    items.forEach(function (it, i) {
+      var d = document.createElement('div');
+      d.className = 'thumb';
+      d.innerHTML = (it.preview ? '<img alt="">' : '<div class="pdf">PDF</div>') +
+        (sending || it.status === 'done' ? '' : '<button class="del" aria-label="この写真を取り消す">✕</button>') +
+        (it.status === 'done' ? '<div class="st done">送信済み</div>' :
+         it.status === 'err' ? '<div class="st err">失敗</div>' :
+         sending ? '<div class="st wait">送信待ち</div>' : '');
+      if (it.preview) d.querySelector('img').src = it.preview;
+      var del = d.querySelector('.del');
+      if (del) del.onclick = function () { items.splice(i, 1); if (!items.length) show('step-start'); render(); };
+      grid.appendChild(d);
+    });
+    var left = items.filter(function (it) { return it.status !== 'done'; }).length;
+    $('count').textContent = '送る書類：' + left + '枚';
+    $('btn-send').disabled = sending || left === 0;
+    $('btn-send').innerHTML = sending ? '送信中…' : '<span class="ico">📤</span>' +
+      (items.some(function (it) { return it.status === 'err'; }) ? 'もう一度送信する' : '送信する');
+    $('btn-more').classList.toggle('hidden', sending);
+    renderStores();
+  }
+
+  // ---------- 画像を縮小してJPEGにする(通信量を減らし、送信を速くするため) ----------
+  function prepare(file) {
+    return new Promise(function (resolve, reject) {
+      if (file.type === 'application/pdf') {
+        if (file.size > MAX_BYTES) return reject(new Error('PDFが大きすぎます(8MBまで)'));
+        var r = new FileReader();
+        r.onload = function () { resolve({ mime: 'application/pdf', b64: String(r.result).split(',')[1] }); };
+        r.onerror = function () { reject(new Error('ファイルを読み込めませんでした')); };
+        return r.readAsDataURL(file);
+      }
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+        var c = document.createElement('canvas');
+        c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve({ mime: 'image/jpeg', b64: c.toDataURL('image/jpeg', JPEG_QUALITY).split(',')[1] });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('この写真は読み込めませんでした')); };
+      img.src = url;
+    });
+  }
+
+  // 本文は text/plain で送る(Googleのサーバーへ追加確認なしで届く形式のため)
+  function upload(p, index) {
+    return fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ k: TOKEN, store: selected, mime: p.mime, data: p.b64, index: index })
+    })
+      .then(function (r) { return r.json(); }, function () { throw new Error('通信に失敗しました'); })
+      .then(function (res) { if (!res.ok) throw new Error(res.error || '送信に失敗しました'); return res; });
+  }
+
+  $('btn-send').onclick = function () {
+    if (sending) return;
+    var targets = items.filter(function (it) { return it.status !== 'done'; });
+    if (!targets.length) return;
+    sending = true;
+    $('err').classList.add('hidden');
+    $('progress').classList.remove('hidden');
+    targets.forEach(function (it) { it.status = 'wait'; });
+    render();
+
+    var errMsg = '';
+    var chain = Promise.resolve();
+    targets.forEach(function (it, i) {
+      chain = chain.then(function () {
+        return prepare(it.file)
+          .then(function (p) { return upload(p, items.indexOf(it)); })
+          .then(function () { it.status = 'done'; })
+          .catch(function (e) { it.status = 'err'; errMsg = e.message; })
+          .then(function () {
+            $('bar').style.width = Math.round((i + 1) / targets.length * 100) + '%';
+            render();
+          });
+      });
+    });
+    chain.then(function () {
+      sending = false;
+      $('progress').classList.add('hidden');
+      $('bar').style.width = '0';
+      if (items.every(function (it) { return it.status === 'done'; })) {
+        var name = storeName();
+        $('done-text').textContent = items.length + '枚の書類を送りました。' + (name ? '（' + name + '）' : '（店舗：空欄）');
+        items = [];
+        show('step-done');
+      } else {
+        $('err').innerHTML = '送れなかった書類があります（赤い「失敗」の書類）。<br>電波の良い場所で「もう一度送信する」を押してください。' +
+          (errMsg ? '<br><small>理由：' + errMsg.replace(/[<>&]/g, '') + '</small>' : '');
+        $('err').classList.remove('hidden');
+      }
+      render();
+    });
+  };
+
+  // 送信中に画面を閉じようとしたら確認する
+  window.addEventListener('beforeunload', function (e) {
+    if (sending) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+</body>
+</html>
